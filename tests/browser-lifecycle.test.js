@@ -8,11 +8,31 @@ const files = ['src/grampan-engine.js', 'src/article.js', 'src/dom-map.js', 'src
 async function install(html) {
   const dom = new JSDOM(html, { runScripts: 'outside-only', url: 'https://example.test/article' });
   const listeners = [];
-  dom.window.chrome = { runtime: { onMessage: { addListener(listener) { listeners.push(listener); } } } };
+  const storageListeners = [];
+  const store = {};
+  dom.window.chrome = {
+    runtime: { onMessage: { addListener(listener) { listeners.push(listener); } } },
+    storage: {
+      local: {
+        get: async (key) => (typeof key === 'string' ? { [key]: store[key] } : store),
+        set: async (obj) => {
+          for (const [k, v] of Object.entries(obj)) {
+            const old = store[k];
+            store[k] = v;
+            for (const listener of storageListeners) listener({ [k]: { oldValue: old, newValue: v } }, 'local');
+          }
+        },
+      },
+      onChanged: {
+        addListener(listener) { storageListeners.push(listener); },
+      },
+    },
+  };
   for (const file of files) dom.window.eval(await readFile(new URL(`../${file}`, import.meta.url), 'utf8'));
   assert.equal(listeners.length, 1, 'content script registers one message listener');
-  return { window: dom.window, toggle: () => listeners[0]({ type: 'grampanext-toggle' }) };
+  return { window: dom.window, toggle: () => listeners[0]({ type: 'grampanext-toggle' }), chrome: dom.window.chrome };
 }
+
 
 test('first toggle scans once, second removes marks, third restores cached ranges', async () => {
   const { window, toggle } = await install('<nav>We leverage navigation.</nav><main><p>At its core, we leverage a robust ecosystem.</p></main>');
@@ -53,3 +73,10 @@ test('ignored page chrome is not scanned and changed cached text safely skips re
   toggle();
   assert.equal(window.document.querySelectorAll('mark[data-grampanext="true"]').length, 0);
 });
+
+test('highlight color updates CSS variable from storage changes', async () => {
+  const { window, chrome } = await install('<main><p>Sample text</p></main>');
+  await chrome.storage.local.set({ highlightColor: '#123456' });
+  assert.equal(window.document.documentElement.style.getPropertyValue('--grampanext-highlight-color'), '#123456');
+});
+

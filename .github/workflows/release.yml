@@ -17,6 +17,8 @@ jobs:
           for target in chrome firefox; do
             mkdir -p "dist/$target"
             cp -R src styles LICENSE NOTICE "dist/$target"
+
+
             cp "manifest.$target.json" "dist/$target/manifest.json"
             (cd "dist/$target" && zip -qr "../grampanext-$target.zip" .)
           done

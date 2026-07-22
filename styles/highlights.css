@@ -1,1 +1,6 @@
-mark.grampanext-highlight[data-grampanext="true"] { background: #fcd34d; color: inherit; padding: 0; }
+mark.grampanext-highlight[data-grampanext="true"] {
+  background-color: var(--grampanext-highlight-color, #fcd34d) !important;
+  color: inherit !important;
+  padding: 0;
+}
+

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Grampanext settings</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <h1>Grampanext</h1>
+
+    <section>
+      <label for="highlight-color">Highlight colour</label>
+
+      <div class="colour-row">
+        <input
+          id="highlight-color"
+          type="color"
+          value="#fcd34d"
+        >
+        <output id="colour-value" for="highlight-color">
+          #fcd34d
+        </output>
+      </div>
+
+      <button id="reset-colour" type="button">
+        Reset colour
+      </button>
+    </section>
+
+    <section>
+      <span class="field-label">Shortcut</span>
+      <output id="current-shortcut">Loading…</output>
+
+      <button id="change-shortcut" type="button">
+        Change shortcut
+      </button>
+    </section>
+
+    <p id="status" role="status" aria-live="polite"></p>
+  </main>
+
+  <script src="popup.js"></script>
+</body>
+</html>
