@@ -2,5 +2,24 @@ mark.grampanext-highlight[data-grampanext="true"] {
   background-color: var(--grampanext-highlight-color, #fcd34d) !important;
   color: inherit !important;
   padding: 0;
+  position: relative;
+  cursor: help;
 }
 
+mark.grampanext-highlight[data-grampanext="true"][data-pattern-name]:hover::after {
+  content: attr(data-pattern-name);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1d1b17;
+  color: #faf9f7;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.3;
+  white-space: nowrap;
+  z-index: 2147483647;
+  pointer-events: none;
+  margin-bottom: 4px;
+}

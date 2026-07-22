@@ -329,12 +329,12 @@ const patterns = [
 // END VERBATIM GRAMPAN CODE
 
 // Adapter code: retain every upstream detector and return only DOM-neutral offsets.
-function findAllMatches(text) {
-  return patterns.flatMap((pattern) => pattern.find(text).map((match) => ({
+function findAllMatches(text, activePatterns) {
+  return (activePatterns || patterns).flatMap((pattern) => pattern.find(text).map((match) => ({
     start: match.start,
     end: match.end,
     patternId: pattern.id
   })));
 }
 
-globalThis.GrampanEngine = { findAllMatches, patterns };
+globalThis.GrampanEngine = { findAllMatches, patterns, makeRegexFinder };

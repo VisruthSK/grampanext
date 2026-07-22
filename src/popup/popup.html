@@ -12,7 +12,12 @@
       <h1>Grampanext</h1>
     </header>
 
-    <section aria-labelledby="highlight-label">
+    <nav class="tabs">
+      <button class="tab" data-tab="settings" aria-selected="true">Settings</button>
+      <button class="tab" data-tab="patterns">Patterns</button>
+    </nav>
+
+    <section data-panel="settings" aria-labelledby="highlight-label">
       <div class="section-heading">
         <h2 id="highlight-label">Highlight</h2>
         <button id="reset-colour" type="button" class="text-button">Reset</button>
@@ -42,19 +47,31 @@
         <label for="colour-value">Hex</label>
         <input id="colour-value" type="text" value="#fcd34d" inputmode="text" autocomplete="off" spellcheck="false">
       </div>
+
+      <div class="shortcut">
+        <div>
+          <h2 id="shortcut-label">Shortcut</h2>
+          <output id="current-shortcut">Loading…</output>
+        </div>
+        <button id="change-shortcut" type="button" class="text-button">Change</button>
+      </div>
     </section>
 
-    <section class="shortcut" aria-labelledby="shortcut-label">
-      <div>
-        <h2 id="shortcut-label">Shortcut</h2>
-        <output id="current-shortcut">Loading…</output>
+    <section data-panel="patterns" hidden aria-labelledby="patterns-label">
+      <div class="pattern-list" id="pattern-list" role="group" aria-labelledby="patterns-label">
+        <h2 id="patterns-label" class="patterns-heading">Built-in</h2>
       </div>
-      <button id="change-shortcut" type="button" class="text-button">Change</button>
+      <form id="add-pattern-form" class="add-pattern">
+        <input id="pattern-name" type="text" placeholder="Pattern name" autocomplete="off">
+        <input id="pattern-regex" type="text" placeholder="Regex (e.g. \\bhello\\b)" autocomplete="off">
+        <button type="submit">Add</button>
+      </form>
     </section>
 
     <p id="status" role="status" aria-live="polite"></p>
   </main>
 
+  <script src="../grampan-engine.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
