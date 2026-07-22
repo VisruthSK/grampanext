@@ -14,9 +14,22 @@ const resetButton = document.querySelector("#reset-colour");
 const shortcutOutput = document.querySelector("#current-shortcut");
 const shortcutButton = document.querySelector("#change-shortcut");
 const status = document.querySelector("#status");
+const patternList = document.querySelector("#pattern-list");
+const addForm = document.querySelector("#add-pattern-form");
 
 let colour = { hue: 43, saturation: 96, lightness: 65 };
 let isDragging = false;
+
+/* Tabs */
+
+document.querySelectorAll(".tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", String(t === tab)));
+    document.querySelectorAll("[data-panel]").forEach((p) => { p.hidden = p.dataset.panel !== tab.dataset.tab; });
+  });
+});
+
+/* Colour picker */
 
 function normaliseColour(value) {
   return HEX_COLOR_PATTERN.test(value) ? value.toLowerCase() : DEFAULT_HIGHLIGHT_COLOR;
@@ -41,7 +54,7 @@ function hslToHex({ hue, saturation, lightness }) {
   const chroma = (1 - Math.abs((2 * lightness / 100) - 1)) * saturation / 100;
   const segment = hue / 60;
   const match = chroma * (1 - Math.abs((segment % 2) - 1));
-  const [red, green, blue] = segment < 1 ? [chroma, match, 0] : segment < 2 ? [match, chroma, 0] : segment < 3 ? [0, chroma, match] : segment < 4 ? [0, match, chroma] : segment < 5 ? [match, 0, chroma] : [chroma, 0, match];
+  const [red, green, blue] = segment < 1 ? [chroma, match, 0] : segment < 2 ? [match, chroma, 0] : segment < 3 ? [0, match, chroma] : segment < 4 ? [0, match, chroma] : segment < 5 ? [match, 0, chroma] : [chroma, 0, match];
   const offset = lightness / 100 - chroma / 2;
   return `#${[red, green, blue].map((channel) => Math.round((channel + offset) * 255).toString(16).padStart(2, "0")).join("")}`;
 }
@@ -154,10 +167,105 @@ shortcutButton.addEventListener("click", async () => {
   try { await openShortcutSettings(); } catch (error) { console.error("Could not open shortcut settings.", error); showStatus("Open the browser extension shortcut settings manually."); }
 });
 
+/* Pattern management */
+
+async function loadPatternConfig() {
+  const result = await api.storage.local.get(["disabledPatterns", "customPatterns"]);
+  return {
+    disabled: new Set(result.disabledPatterns || []),
+    custom: result.customPatterns || [],
+  };
+}
+
+function makePatternRow(pattern, disabled, isCustom) {
+  const label = document.createElement("label");
+  label.className = "pattern-item";
+  const box = document.createElement("input");
+  box.type = "checkbox";
+  box.checked = !disabled.has(pattern.id);
+  box.dataset.patternId = pattern.id;
+  const name = document.createElement("span");
+  name.className = "pattern-item-name";
+  name.textContent = pattern.name;
+  label.append(box, name);
+  if (isCustom) {
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "pattern-remove";
+    del.textContent = "\u00d7";
+    del.dataset.patternId = pattern.id;
+    label.append(del);
+  }
+  return label;
+}
+
+async function renderPatterns() {
+  if (!globalThis.GrampanEngine) return;
+  const { disabled, custom } = await loadPatternConfig();
+  patternList.innerHTML = "";
+
+  const builtinHeading = document.createElement("h2");
+  builtinHeading.className = "patterns-heading";
+  builtinHeading.textContent = "Built-in";
+  patternList.append(builtinHeading);
+
+  for (const p of globalThis.GrampanEngine.patterns)
+    patternList.append(makePatternRow(p, disabled, false));
+
+  if (custom.length) {
+    const customHeading = document.createElement("h2");
+    customHeading.className = "patterns-heading";
+    customHeading.textContent = "Custom";
+    patternList.append(customHeading);
+    for (const p of custom)
+      patternList.append(makePatternRow(p, disabled, true));
+  }
+}
+
+patternList.addEventListener("change", async (e) => {
+  if (!e.target.dataset.patternId) return;
+  const { disabledPatterns = [] } = await api.storage.local.get("disabledPatterns");
+  const disabled = new Set(disabledPatterns);
+  if (e.target.checked) disabled.delete(e.target.dataset.patternId);
+  else disabled.add(e.target.dataset.patternId);
+  await api.storage.local.set({ disabledPatterns: [...disabled] });
+});
+
+patternList.addEventListener("click", async (e) => {
+  if (!e.target.classList.contains("pattern-remove")) return;
+  const id = e.target.dataset.patternId;
+  const { customPatterns = [], disabledPatterns = [] } = await api.storage.local.get(["customPatterns", "disabledPatterns"]);
+  await api.storage.local.set({
+    customPatterns: customPatterns.filter((p) => p.id !== id),
+    disabledPatterns: disabledPatterns.filter((d) => d !== id),
+  });
+  renderPatterns();
+});
+
+addForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = document.querySelector("#pattern-name").value.trim();
+  const regex = document.querySelector("#pattern-regex").value.trim();
+  if (!name || !regex) return;
+  try { new RegExp(regex, "gi"); } catch { showStatus("Invalid regex."); return; }
+  const { customPatterns = [] } = await api.storage.local.get("customPatterns");
+  customPatterns.push({ id: "custom-" + Date.now(), name, description: "", regex });
+  await api.storage.local.set({ customPatterns });
+  document.querySelector("#pattern-name").value = "";
+  document.querySelector("#pattern-regex").value = "";
+  renderPatterns();
+});
+
+/* Init */
+
 async function initialise() {
   renderColour();
-  try { await Promise.all([loadColour(), loadShortcut()]); }
-  catch (error) { console.error("Could not initialise popup.", error); showStatus("Some settings could not be loaded."); }
+  try {
+    await Promise.all([loadColour(), loadShortcut(), renderPatterns()]);
+  } catch (error) {
+    console.error("Could not initialise popup.", error);
+    showStatus("Some settings could not be loaded.");
+  }
 }
 
 void initialise();

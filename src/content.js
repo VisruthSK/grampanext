@@ -29,15 +29,34 @@
     );
   }
 
+  let activePatterns = null;
+
+  async function loadPatterns() {
+    const result = await api?.storage?.local?.get(["disabledPatterns", "customPatterns"]) ?? {};
+    const disabled = new Set(result?.disabledPatterns || []);
+    const custom = (result?.customPatterns || []).map((p) => ({
+      id: p.id,
+      name: p.name,
+      description: p.description || "",
+      find: globalThis.GrampanEngine.makeRegexFinder(new RegExp(p.regex, "gi")),
+    }));
+    activePatterns = globalThis.GrampanEngine.patterns
+      .filter((p) => !disabled.has(p.id))
+      .concat(custom);
+  }
+
+  void loadPatterns().catch(() => {});
+
   api?.storage?.onChanged?.addListener((changes, areaName) => {
-    if (
-      areaName === "local" &&
-      Object.hasOwn(changes, HIGHLIGHT_COLOR_KEY)
-    ) {
+    if (areaName !== "local") return;
+    if (Object.hasOwn(changes, HIGHLIGHT_COLOR_KEY)) {
       applyHighlightColour(
         changes[HIGHLIGHT_COLOR_KEY].newValue ??
           DEFAULT_HIGHLIGHT_COLOR,
       );
+    }
+    if (Object.hasOwn(changes, "disabledPatterns") || Object.hasOwn(changes, "customPatterns")) {
+      void loadPatterns();
     }
   });
 
@@ -49,7 +68,7 @@
   let state = 'empty'; let cached = [];
   function scan() {
     const container = globalThis.GrampanArticle.chooseArticle();
-    cached = globalThis.GrampanArticle.articleBlocks(container).map((block) => { const map = globalThis.GrampanDomMap.textMap(block); return { block, text: map.text, matches: globalThis.GrampanHighlights.normalizeMatches(globalThis.GrampanEngine.findAllMatches(map.text), map.text.length) }; }).filter((entry) => entry.matches.length);
+    cached = globalThis.GrampanArticle.articleBlocks(container).map((block) => { const map = globalThis.GrampanDomMap.textMap(block); return { block, text: map.text, matches: globalThis.GrampanHighlights.normalizeMatches(globalThis.GrampanEngine.findAllMatches(map.text, activePatterns), map.text.length) }; }).filter((entry) => entry.matches.length);
   }
   function show() {
     for (const entry of cached) {
@@ -57,7 +76,7 @@
       const map = globalThis.GrampanDomMap.textMap(entry.block);
       if (map.text !== entry.text) continue;
       for (const match of [...entry.matches].reverse()) {
-        for (const range of globalThis.GrampanDomMap.rangesFor(map, match.start, match.end).reverse()) globalThis.GrampanHighlights.applyRange(range);
+        for (const range of globalThis.GrampanDomMap.rangesFor(map, match.start, match.end).reverse()) globalThis.GrampanHighlights.applyRange(range, match.patternId);
       }
     }
     state = 'visible';
@@ -65,4 +84,3 @@
   function toggle() { if (state === 'empty') { scan(); show(); } else if (state === 'visible') { globalThis.GrampanHighlights.removeHighlights(); state = 'hidden'; } else show(); }
   api?.runtime?.onMessage?.addListener((message) => { if (message?.type === 'grampanext-toggle') toggle(); });
 })();
-
