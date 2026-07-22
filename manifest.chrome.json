@@ -1,0 +1,1 @@
+{"manifest_version":3,"name":"grampanext","version":"1.0.0","description":"Highlight Grampan matches in the current article.","permissions":["activeTab","scripting"],"background":{"service_worker":"src/background.js"},"commands":{"toggle-grampanext":{"suggested_key":{"default":"Ctrl+Shift+G","mac":"Command+Shift+G"},"description":"Toggle Grampan highlights"}}}

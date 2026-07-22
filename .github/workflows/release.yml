@@ -1,0 +1,46 @@
+name: Extension CI and release
+
+on:
+  push:
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions: read-all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  release:
+    if: github.event_name == 'release' && github.event.action == 'published'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Package Chrome and Firefox builds
+        run: |
+          for target in chrome firefox; do
+            mkdir -p "dist/$target"
+            cp -R src styles LICENSE NOTICE "dist/$target"
+            cp "manifest.$target.json" "dist/$target/manifest.json"
+            (cd "dist/$target" && zip -qr "../grampanext-$target.zip" .)
+          done
+      - uses: softprops/action-gh-release@v3
+        with:
+          files: dist/*.zip
