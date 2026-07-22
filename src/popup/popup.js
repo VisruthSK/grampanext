@@ -85,7 +85,6 @@ async function saveColour(hex = currentColour()) {
   const normalised = normaliseColour(hex);
   await api.storage.local.set({ [HIGHLIGHT_COLOR_KEY]: normalised });
   setColour(normalised);
-  showStatus("Colour saved.");
 }
 
 function setFieldColour(event) {
