@@ -1,7 +1,7 @@
 import { rmSync, mkdirSync, cpSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
-const FILES = ['src', 'styles', 'LICENSE', 'NOTICE'];
+const FILES = ['src', 'styles', 'LICENSE', 'NOTICE', 'icons'];
 
 for (const target of ['chrome', 'firefox']) {
   const out = `dist/${target}`;

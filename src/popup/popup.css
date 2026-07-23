@@ -33,7 +33,9 @@ header,
   justify-content: space-between;
 }
 
-header { border-bottom: 2px solid var(--line); padding-bottom: 12px; }
+header { border-bottom: 2px solid var(--line); padding-bottom: 12px; gap: 8px; }
+
+.header-icon { border-radius: 4px; }
 
 h1, h2, p { margin: 0; }
 
